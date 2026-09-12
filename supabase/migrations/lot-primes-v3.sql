@@ -12,6 +12,13 @@
 -- ============================================================
 
 -- 1) Identifiant public des administrateurs (le code reste haché)
+--    + garde-fou : colonne nom si lot-admins-multi.sql n'a pas encore été exécuté
+alter table public.admins
+  add column if not exists name text not null default '';
+
+update public.admins set name = 'Admin'
+where coalesce(trim(name), '') = '' and (select count(*) from public.admins) = 1;
+
 alter table public.admins
   add column if not exists id uuid not null default gen_random_uuid();
 
