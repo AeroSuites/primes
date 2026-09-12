@@ -28,11 +28,12 @@ export function AuthProvider({ children }) {
     return { ok: true }
   }, [])
 
-  const register = useCallback(async (identifiant, nom, mdp) => {
-    const res = await api.signupAgent(identifiant, nom, mdp)
+  const register = useCallback(async (identifiant, nom, mdp, managerId) => {
+    const res = await api.signupAgent(identifiant, nom, mdp, managerId)
     if (res?.error === 'identifiant_utilise') return { ok: false, error: 'Cet identifiant est déjà utilisé.' }
     if (res?.error === 'mdp_court') return { ok: false, error: 'Le mot de passe doit contenir au moins 8 caractères.' }
     if (res?.error === 'identifiant_court') return { ok: false, error: "L'identifiant doit contenir au moins 3 caractères." }
+    if (res?.error === 'manager_requis') return { ok: false, error: 'Sélectionnez votre manager dans la liste.' }
     if (res?.ok) {
       const session = { identifiant: identifiant.trim().toLowerCase(), nom: nom.trim() }
       setAgent(session)

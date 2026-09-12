@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import * as api from '../lib/api'
 import { UserPlus, Plane, ArrowLeft } from 'lucide-react'
 
 export default function Register({ onGoBack }) {
@@ -8,12 +9,25 @@ export default function Register({ onGoBack }) {
   const [nom, setNom] = useState('')
   const [mdp, setMdp] = useState('')
   const [mdp2, setMdp2] = useState('')
+  const [managers, setManagers] = useState(null)
+  const [managerId, setManagerId] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    api
+      .listManagers()
+      .then((res) => setManagers(res?.ok ? res.managers || [] : []))
+      .catch(() => setManagers([]))
+  }, [])
 
   const submit = async () => {
     if (!identifiant.trim() || !nom.trim()) {
       setError("Renseignez l'identifiant et le nom de l'agent.")
+      return
+    }
+    if (!managerId) {
+      setError('Sélectionnez votre manager dans la liste.')
       return
     }
     if (!mdp || mdp.length < 8) {
@@ -26,7 +40,7 @@ export default function Register({ onGoBack }) {
     }
     setBusy(true)
     setError('')
-    const res = await register(identifiant, nom, mdp)
+    const res = await register(identifiant, nom, mdp, managerId)
     if (!res.ok) setError(res.error)
     setBusy(false)
   }
@@ -57,6 +71,26 @@ export default function Register({ onGoBack }) {
             placeholder="Nom complet (ex : AYAD (FARID))"
             className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
           />
+          <select
+            value={managerId}
+            onChange={(e) => setManagerId(e.target.value)}
+            className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white"
+          >
+            <option value="">
+              {managers === null ? 'Chargement des managers…' : '— Choisir mon manager —'}
+            </option>
+            {(managers || []).map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          {managers && managers.length === 0 && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+              Aucun manager disponible pour le moment. Contactez votre responsable avant de
+              créer un compte.
+            </p>
+          )}
           <input
             value={mdp}
             onChange={(e) => setMdp(e.target.value)}
@@ -75,7 +109,7 @@ export default function Register({ onGoBack }) {
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             onClick={submit}
-            disabled={busy}
+            disabled={busy || !managers || managers.length === 0}
             className="w-full flex items-center justify-center gap-2 bg-sky-600 text-white px-4 py-2 rounded-md hover:bg-sky-700 disabled:opacity-50 text-sm font-semibold"
           >
             <UserPlus className="h-4 w-4" /> {busy ? 'Création…' : 'Créer mon compte'}
