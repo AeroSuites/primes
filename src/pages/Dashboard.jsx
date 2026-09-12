@@ -21,7 +21,6 @@ const STATUT_STYLES = {
 export default function Dashboard() {
   const { agent, logout } = useAuth()
   const [declarations, setDeclarations] = useState(null)
-  const [montant, setMontant] = useState(5)
   const [error, setError] = useState('')
 
   const [avion, setAvion] = useState('')
@@ -32,12 +31,8 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     try {
-      const [dRes, mRes] = await Promise.all([
-        api.myDeclarations(agent.identifiant),
-        api.getPrimeMontant(),
-      ])
+      const dRes = await api.myDeclarations(agent.identifiant)
       setDeclarations(dRes?.declarations || [])
-      if (mRes?.montant) setMontant(mRes.montant)
     } catch {
       setError('Impossible de charger vos déclarations.')
     }
@@ -71,9 +66,7 @@ export default function Dashboard() {
   }
 
   const validCount = (declarations || []).filter((d) => d.statut === 'validee').length
-  const totalMontant = (declarations || [])
-    .filter((d) => d.statut === 'validee')
-    .reduce((acc, d) => acc + Number(d.montant || 0), 0)
+  const refusedCount = (declarations || []).filter((d) => d.statut === 'refusee').length
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -103,7 +96,7 @@ export default function Dashboard() {
           <Stat label="Déclarations" value={declarations?.length ?? '…'} />
           <Stat label="En attente" value={(declarations || []).filter((d) => d.statut === 'soumise').length} />
           <Stat label="Validées" value={validCount} />
-          <Stat label="Total validé" value={`${totalMontant.toFixed(2)} €`} />
+          <Stat label="Refusées" value={refusedCount} />
         </div>
 
         {error && (
@@ -116,7 +109,6 @@ export default function Dashboard() {
             <ClipboardList className="h-5 w-5 text-sky-500" /> Nouvelle déclaration
           </h2>
           <p className="text-xs text-slate-500 mb-4">
-            Montant unitaire : <strong>{montant.toFixed(2)} €</strong> (configuré par le manager).
             La déclaration est transmise au manager pour validation.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -189,7 +181,6 @@ export default function Dashboard() {
                     <th className="px-3 py-2 font-semibold text-slate-700">Avion</th>
                     <th className="px-3 py-2 font-semibold text-slate-700">Élément</th>
                     <th className="px-3 py-2 font-semibold text-slate-700">Description</th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">Montant</th>
                     <th className="px-3 py-2 font-semibold text-slate-700">Statut</th>
                     <th className="px-3 py-2 font-semibold text-slate-700">Motif / décision</th>
                   </tr>
@@ -207,7 +198,6 @@ export default function Dashboard() {
                         <td className="px-3 py-2 max-w-[240px]">
                           <span className="truncate block" title={d.description}>{d.description}</span>
                         </td>
-                        <td className="px-3 py-2 font-semibold">{Number(d.montant || 0).toFixed(2)} €</td>
                         <td className="px-3 py-2">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${st.cls}`}>
                             {st.icon} {st.label}
