@@ -9,7 +9,7 @@ import {
   XCircle,
   Clock,
   ClipboardList,
-  Euro,
+  History,
 } from 'lucide-react'
 
 const STATUT_STYLES = {
@@ -172,7 +172,7 @@ export default function Dashboard() {
         {/* Historique */}
         <div className="bg-white rounded-xl shadow p-5">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Euro className="h-5 w-5 text-sky-500" /> Historique {new Date().getFullYear()}
+            <History className="h-5 w-5 text-sky-500" /> Historique {new Date().getFullYear()}
           </h2>
           {declarations === null && <p className="text-sm text-slate-400">Chargement…</p>}
           {declarations && declarations.length === 0 && (
