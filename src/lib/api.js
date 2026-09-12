@@ -19,12 +19,6 @@ export async function loginAgent(identifiant, mdp) {
   return data
 }
 
-export async function getPrimeMontant() {
-  const { data, error } = await supabase.rpc('get_prime_montant')
-  if (error) throw error
-  return data
-}
-
 export async function submitDeclaration(agent, avion, element, date, description) {
   const { data, error } = await supabase.rpc('agent_submit_declaration', {
     p_identifiant: agent.identifiant,
