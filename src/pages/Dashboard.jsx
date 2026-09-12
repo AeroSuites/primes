@@ -92,6 +92,14 @@ export default function Dashboard() {
   }, [load])
 
   const submit = async () => {
+    if (!avion.trim()) {
+      setError('Le matricule avion est obligatoire.')
+      return
+    }
+    if (!element.trim()) {
+      setError("L'élément est obligatoire.")
+      return
+    }
     if (!description.trim()) {
       setError('La description de l’intervention est obligatoire.')
       return
@@ -116,7 +124,10 @@ export default function Dashboard() {
     setError('')
     try {
       const res = await api.submitDeclaration(agent, avion.trim(), element.trim(), isoDate, description.trim())
-      if (res?.error) setError("Échec de l'envoi.")
+      if (res?.error === 'avion_requis') setError('Le matricule avion est obligatoire.')
+      else if (res?.error === 'element_requis') setError("L'élément est obligatoire.")
+      else if (res?.error === 'description_requise') setError('La description de l’intervention est obligatoire.')
+      else if (res?.error) setError("Échec de l'envoi.")
       else {
         setAvion('')
         setElement('Toilettes')
@@ -204,7 +215,7 @@ export default function Dashboard() {
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-xs font-medium text-slate-600">
-              Avion / immatriculation
+              Avion / immatriculation <span className="text-red-500">*</span>
               <input
                 value={avion}
                 onChange={(e) => setAvion(e.target.value)}
@@ -213,7 +224,7 @@ export default function Dashboard() {
               />
             </label>
             <label className="text-xs font-medium text-slate-600">
-              Élément
+              Élément <span className="text-red-500">*</span>
               <input
                 value={element}
                 onChange={(e) => setElement(e.target.value)}
@@ -263,7 +274,7 @@ export default function Dashboard() {
               </div>
             </label>
             <label className="text-xs font-medium text-slate-600">
-              Description de l'intervention
+              Description de l'intervention <span className="text-red-500">*</span>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
