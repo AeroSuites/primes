@@ -153,7 +153,7 @@ begin
     return jsonb_build_object('error', 'description_requise');
   end if;
 
-  select montant into montant from public.prime_config where id = 1;
+  select prime_config.montant into montant from public.prime_config where id = 1;
 
   insert into public.declarations (
     agent_identifiant, agent_nom, avion, element,
@@ -207,7 +207,7 @@ as $$
 declare
   montant numeric(8,2);
 begin
-  select montant into montant from public.prime_config where id = 1;
+  select prime_config.montant into montant from public.prime_config where id = 1;
   return jsonb_build_object('ok', true, 'montant', coalesce(montant, 5));
 end;
 $$;
