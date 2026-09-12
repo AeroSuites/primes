@@ -31,6 +31,6 @@ npm run dev
 
 ## Déploiement
 
-Créer un dépôt GitHub `aeroteam-primes`, configurer les secrets `SUPABASE_URL` et
+Créer un dépôt GitHub `primes`, configurer les secrets `SUPABASE_URL` et
 `SUPABASE_ANON_KEY`, pousser sur `main` — le workflow `.github/workflows/deploy.yml` publie sur
-GitHub Pages (`https://VOTRE_COMPTE.github.io/aeroteam-primes/`).
+GitHub Pages (`https://VOTRE_COMPTE.github.io/primes/`).
