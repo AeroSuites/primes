@@ -23,6 +23,24 @@ const CATEGORIES = {
   V035: 'Toilette T2 (V035)',
 }
 
+const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'))
+const MONTHS = [
+  'Janvier',
+  'Février',
+  'Mars',
+  'Avril',
+  'Mai',
+  'Juin',
+  'Juillet',
+  'Août',
+  'Septembre',
+  'Octobre',
+  'Novembre',
+  'Décembre',
+]
+const CURRENT_YEAR = new Date().getFullYear()
+const YEARS = [String(CURRENT_YEAR), String(CURRENT_YEAR - 1)]
+
 const primeDay = (d) =>
   d.date_intervention || (d.created_at ? String(d.created_at).slice(0, 10) : '')
 
@@ -54,7 +72,9 @@ export default function Dashboard() {
 
   const [avion, setAvion] = useState('')
   const [element, setElement] = useState('Toilettes')
-  const [date, setDate] = useState('')
+  const [dDay, setDDay] = useState('')
+  const [dMonth, setDMonth] = useState('')
+  const [dYear, setDYear] = useState('')
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -76,15 +96,33 @@ export default function Dashboard() {
       setError('La description de l’intervention est obligatoire.')
       return
     }
+    let isoDate = null
+    if (dDay || dMonth || dYear) {
+      if (!dDay || !dMonth || !dYear) {
+        setError("Complétez la date d'intervention (jour, mois et année) ou laissez-la vide.")
+        return
+      }
+      const y = Number(dYear)
+      const m = Number(dMonth)
+      const dd = Number(dDay)
+      const dt = new Date(y, m - 1, dd)
+      if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== dd) {
+        setError("La date d'intervention est invalide.")
+        return
+      }
+      isoDate = `${dYear}-${dMonth}-${dDay}`
+    }
     setSubmitting(true)
     setError('')
     try {
-      const res = await api.submitDeclaration(agent, avion.trim(), element.trim(), date || null, description.trim())
+      const res = await api.submitDeclaration(agent, avion.trim(), element.trim(), isoDate, description.trim())
       if (res?.error) setError("Échec de l'envoi.")
       else {
         setAvion('')
         setElement('Toilettes')
-        setDate('')
+        setDDay('')
+        setDMonth('')
+        setDYear('')
         setDescription('')
         await load()
       }
@@ -183,14 +221,46 @@ export default function Dashboard() {
                 className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-1"
               />
             </label>
-            <label className="text-xs font-medium text-slate-600">
-              Date de l'intervention
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-1"
-              />
+            <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+              Date de l'intervention (facultatif — jour / mois / année)
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                <select
+                  value={dDay}
+                  onChange={(e) => setDDay(e.target.value)}
+                  className="border border-slate-300 rounded-md px-2 py-2 text-sm bg-white"
+                >
+                  <option value="">Jour</option>
+                  {DAYS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={dMonth}
+                  onChange={(e) => setDMonth(e.target.value)}
+                  className="border border-slate-300 rounded-md px-2 py-2 text-sm bg-white"
+                >
+                  <option value="">Mois</option>
+                  {MONTHS.map((name, i) => (
+                    <option key={name} value={String(i + 1).padStart(2, '0')}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={dYear}
+                  onChange={(e) => setDYear(e.target.value)}
+                  className="border border-slate-300 rounded-md px-2 py-2 text-sm bg-white"
+                >
+                  <option value="">Année</option>
+                  {YEARS.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </label>
             <label className="text-xs font-medium text-slate-600">
               Description de l'intervention
