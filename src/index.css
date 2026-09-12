@@ -1,1 +1,48 @@
 @import "tailwindcss";
+
+/* Écrans connexion / inscription — ambiance ambre (AeroPrimes) */
+.auth-screen {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(900px 500px at 10% -10%, #ffedd5 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, #fce7f3 0%, transparent 55%),
+    linear-gradient(160deg, #fffbf5 0%, #fef3c7 60%, #fff7ed 100%);
+}
+.auth-screen::before,
+.auth-screen::after {
+  content: "";
+  position: absolute;
+  width: 55vmax;
+  height: 55vmax;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.5;
+  pointer-events: none;
+  animation: auth-drift 20s ease-in-out infinite alternate;
+}
+.auth-screen::before {
+  top: -20vmax;
+  right: -18vmax;
+  background: radial-gradient(circle, #fdba74 0%, transparent 60%);
+}
+.auth-screen::after {
+  bottom: -24vmax;
+  left: -16vmax;
+  background: radial-gradient(circle, #fda4af 0%, transparent 60%);
+  animation-delay: -7s;
+}
+@keyframes auth-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-6vmax, 4vmax, 0) scale(1.12);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-screen::before,
+  .auth-screen::after {
+    animation: none;
+  }
+}

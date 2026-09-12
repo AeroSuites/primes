@@ -46,8 +46,8 @@ export default function Register({ onGoBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+    <div className="auth-screen min-h-screen flex items-center justify-center p-4">
+      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center gap-3 mb-2">
           <Plane className="h-8 w-8 text-sky-500" />
           <h1 className="text-2xl font-bold text-slate-900">Créer un compte agent</h1>
