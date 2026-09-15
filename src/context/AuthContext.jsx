@@ -30,6 +30,8 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (identifiant, nom, mdp, managerId) => {
     const res = await api.signupAgent(identifiant, nom, mdp, managerId)
+    if (res?.error === 'trop_de_tentatives')
+      return { ok: false, error: "Trop de tentatives d'inscription. Réessayez dans 15 minutes." }
     if (res?.error === 'identifiant_utilise') return { ok: false, error: 'Cet identifiant est déjà utilisé.' }
     if (res?.error === 'mdp_court') return { ok: false, error: 'Le mot de passe doit contenir au moins 8 caractères.' }
     if (res?.error === 'identifiant_court') return { ok: false, error: "L'identifiant doit contenir au moins 3 caractères." }
