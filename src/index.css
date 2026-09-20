@@ -5,9 +5,9 @@
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(900px 500px at 10% -10%, #ffedd5 0%, transparent 60%),
-    radial-gradient(900px 500px at 110% 110%, #fce7f3 0%, transparent 55%),
-    linear-gradient(160deg, #fffbf5 0%, #fef3c7 60%, #fff7ed 100%);
+    radial-gradient(900px 500px at 10% -10%, #003a8c 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, rgba(228, 0, 43, 0.35) 0%, transparent 55%),
+    linear-gradient(160deg, #001a45 0%, #002157 55%, #003a8c 100%);
 }
 .auth-screen::before,
 .auth-screen::after {
@@ -24,12 +24,12 @@
 .auth-screen::before {
   top: -20vmax;
   right: -18vmax;
-  background: radial-gradient(circle, #fdba74 0%, transparent 60%);
+  background: radial-gradient(circle, #003a8c 0%, transparent 60%);
 }
 .auth-screen::after {
   bottom: -24vmax;
   left: -16vmax;
-  background: radial-gradient(circle, #fda4af 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(228, 0, 43, 0.8) 0%, transparent 60%);
   animation-delay: -7s;
 }
 @keyframes auth-drift {

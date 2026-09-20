@@ -47,14 +47,17 @@ export default function Register({ onGoBack }) {
 
   return (
     <div className="auth-screen min-h-screen flex items-center justify-center p-4">
-      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full max-w-md p-6">
-        <div className="flex items-center gap-3 mb-2">
-          <Plane className="h-8 w-8 text-sky-500" />
-          <h1 className="text-2xl font-bold text-slate-900">Créer un compte agent</h1>
+      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-[#e4002b]" />
+        <div className="flex items-center justify-center gap-3 mb-1">
+          <Plane className="h-7 w-7 text-[#002157]" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-[0.18em] text-[#002157]">
+            AEROPRIMES
+          </h1>
         </div>
-        <p className="text-slate-500 mb-6">
-          Votre compte servira uniquement pour AeroPrimes (déclarations). L'enregistrement est
-          immédiat.
+        <p className="text-center text-slate-500 mb-6">
+          Créer un compte agent — votre compte servira uniquement pour AeroPrimes (déclarations).
+          L'enregistrement est immédiat.
         </p>
 
         <div className="space-y-3">
@@ -106,11 +109,11 @@ export default function Register({ onGoBack }) {
             onKeyDown={(e) => e.key === 'Enter' && submit()}
             className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-[#e4002b]">{error}</p>}
           <button
             onClick={submit}
             disabled={busy || !managers || managers.length === 0}
-            className="w-full flex items-center justify-center gap-2 bg-sky-600 text-white px-4 py-2 rounded-md hover:bg-sky-700 disabled:opacity-50 text-sm font-semibold"
+            className="w-full flex items-center justify-center gap-2 bg-[#002157] text-white px-4 py-2 rounded-md hover:bg-[#003a8c] disabled:opacity-50 text-sm font-semibold"
           >
             <UserPlus className="h-4 w-4" /> {busy ? 'Création…' : 'Créer mon compte'}
           </button>
