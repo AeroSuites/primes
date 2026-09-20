@@ -76,7 +76,8 @@ export default function Dashboard() {
   const [error, setError] = useState('')
 
   const [avion, setAvion] = useState('')
-  const [element, setElement] = useState('Toilettes')
+  const [element, setElement] = useState('')
+  const [trfx, setTrfx] = useState('')
   const [dDay, setDDay] = useState('')
   const [dMonth, setDMonth] = useState('')
   const [dYear, setDYear] = useState('')
@@ -128,14 +129,15 @@ export default function Dashboard() {
     setSubmitting(true)
     setError('')
     try {
-      const res = await api.submitDeclaration(agent, avion.trim(), element.trim(), isoDate, description.trim())
+      const res = await api.submitDeclaration(agent, avion.trim(), element.trim(), isoDate, description.trim(), trfx.trim())
       if (res?.error === 'avion_requis') setError('Le matricule avion est obligatoire.')
       else if (res?.error === 'element_requis') setError("L'élément est obligatoire.")
       else if (res?.error === 'description_requise') setError('La description de l’intervention est obligatoire.')
       else if (res?.error) setError("Échec de l'envoi.")
       else {
         setAvion('')
-        setElement('Toilettes')
+        setElement('')
+        setTrfx('')
         setDDay('')
         setDMonth('')
         setDYear('')
@@ -325,6 +327,15 @@ export default function Dashboard() {
                 onChange={(e) => setElement(e.target.value)}
                 placeholder="Ex : Toilettes avant"
                 className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-1"
+              />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              TRFX <span className="text-slate-400">(facultatif)</span>
+              <input
+                value={trfx}
+                onChange={(e) => setTrfx(e.target.value)}
+                placeholder="Ex : TRFX900SG7HK"
+                className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-1 font-mono"
               />
             </label>
             <label className="text-xs font-medium text-slate-600 sm:col-span-2">

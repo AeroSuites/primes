@@ -26,7 +26,7 @@ export async function loginAgent(identifiant, mdp) {
   return data
 }
 
-export async function submitDeclaration(agent, avion, element, date, description) {
+export async function submitDeclaration(agent, avion, element, date, description, trfx) {
   const { data, error } = await supabase.rpc('agent_submit_declaration', {
     p_identifiant: agent.identifiant,
     p_nom: agent.nom,
@@ -34,6 +34,7 @@ export async function submitDeclaration(agent, avion, element, date, description
     p_element: element,
     p_date_intervention: date || null,
     p_description: description,
+    p_trfx: trfx || '',
   })
   if (error) throw error
   return data
