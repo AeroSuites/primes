@@ -216,20 +216,21 @@ export default function Dashboard() {
     )
     autoTable(doc, {
       startY: 37,
-      head: [['Date', 'Avion', 'Element', 'Description', 'Categorie', 'Statut']],
+      head: [['Date', 'Avion', 'Element', 'TRFX', 'Description', 'Categorie', 'Statut']],
       body: items.map((d) => [
         primeDay(d)
           ? new Date(`${primeDay(d)}T12:00:00`).toLocaleDateString('fr-FR')
           : '-',
         d.avion || '',
         d.element || '',
+        d.trfx || '',
         d.description || '',
         d.statut === 'validee' && d.categorie ? CATEGORIES[d.categorie] || d.categorie : '-',
         (STATUT_STYLES[d.statut] || STATUT_STYLES.soumise).label,
       ]),
       styles: { fontSize: 8, cellPadding: 1.5 },
       headStyles: { fillColor: [15, 23, 42] },
-      columnStyles: { 3: { cellWidth: 60 } },
+      columnStyles: { 4: { cellWidth: 55 } },
     })
     const date = new Date().toISOString().slice(0, 10)
     const name =
@@ -515,6 +516,7 @@ export default function Dashboard() {
                             <tr className="text-left bg-slate-50">
                               <th className="px-3 py-2 font-semibold text-slate-700">Avion</th>
                               <th className="px-3 py-2 font-semibold text-slate-700">Élément</th>
+                              <th className="px-3 py-2 font-semibold text-slate-700">TRFX</th>
                               <th className="px-3 py-2 font-semibold text-slate-700">Description</th>
                               <th className="px-3 py-2 font-semibold text-slate-700">Catégorie</th>
                               <th className="px-3 py-2 font-semibold text-slate-700">Statut</th>
@@ -532,7 +534,7 @@ export default function Dashboard() {
                                   {newDay && (
                                     <tr className="bg-slate-50">
                                       <td
-                                        colSpan={6}
+                                        colSpan={7}
                                         className="px-3 py-1 font-semibold text-slate-500 text-xs"
                                       >
                                         {formatDay(pd)}
@@ -544,6 +546,7 @@ export default function Dashboard() {
                                       {d.avion || '—'}
                                     </td>
                                     <td className="px-3 py-2">{d.element || '—'}</td>
+                                    <td className="px-3 py-2 font-mono text-xs">{d.trfx || '—'}</td>
                                     <td className="px-3 py-2 max-w-[240px]">
                                       <span className="truncate block" title={d.description}>
                                         {d.description}
