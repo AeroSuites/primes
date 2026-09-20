@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import { useAuth } from '../context/AuthContext'
 import * as api from '../lib/api'
 import {
@@ -10,6 +12,9 @@ import {
   Clock,
   ClipboardList,
   History,
+  ChevronDown,
+  ChevronRight,
+  FileDown,
 } from 'lucide-react'
 
 const STATUT_STYLES = {
@@ -146,28 +151,110 @@ export default function Dashboard() {
   const validCount = (declarations || []).filter((d) => d.statut === 'validee').length
   const refusedCount = (declarations || []).filter((d) => d.statut === 'refusee').length
 
-  const historyGroups = useMemo(() => {
-    const sorted = [...(declarations || [])].sort((a, b) =>
-      primeDay(b).localeCompare(primeDay(a))
+  // Mois disponibles (avec compteurs) — pour le pliage et l'export
+  const monthList = useMemo(() => {
+    const by = {}
+    ;(declarations || []).forEach((d) => {
+      const key = primeDay(d).slice(0, 7)
+      if (!key) return
+      if (!by[key]) by[key] = { key, label: formatMonth(key), count: 0, valid: 0 }
+      by[key].count += 1
+      if (d.statut === 'validee') by[key].valid += 1
+    })
+    return Object.values(by).sort((a, b) => b.key.localeCompare(a.key))
+  }, [declarations])
+
+  const [expandedMonths, setExpandedMonths] = useState(null)
+  const toggleMonth = (key) =>
+    setExpandedMonths((prev) => {
+      const cur = prev === null ? monthList.map((m) => m.key) : prev
+      return cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]
+    })
+
+  // Par défaut : seul le mois en cours est déplié (sinon le plus récent)
+  useEffect(() => {
+    if (expandedMonths !== null || !monthList.length) return
+    const nowKey = new Date().toISOString().slice(0, 7)
+    const initial = monthList.some((m) => m.key === nowKey) ? [nowKey] : [monthList[0].key]
+    setExpandedMonths(initial)
+  }, [monthList, expandedMonths])
+
+  const [exportSel, setExportSel] = useState([])
+  const [exportYear, setExportYear] = useState(String(new Date().getFullYear()))
+
+  const toggleExportMonth = (key) =>
+    setExportSel((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]))
+
+  const exportPdf = (monthKeys, titleOverride) => {
+    const keys = [...new Set(monthKeys || [])].filter(Boolean)
+    const items = (declarations || [])
+      .filter((d) => keys.includes(primeDay(d).slice(0, 7)))
+      .sort((a, b) => primeDay(a).localeCompare(primeDay(b)))
+    if (!items.length) return
+    const doc = new jsPDF()
+    const valid = items.filter((d) => d.statut === 'validee').length
+    const pending = items.filter((d) => d.statut === 'soumise').length
+    const refused = items.filter((d) => d.statut === 'refusee').length
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text('AeroPrimes - historique de primes', 14, 16)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`${agent.nom} - ${agent.identifiant}`, 14, 22)
+    const period =
+      titleOverride ||
+      (keys.length === 1
+        ? formatMonth(keys[0])
+        : keys.length <= 3
+          ? keys.map(formatMonth).join(', ')
+          : `Periode (${keys.length} mois)`)
+    doc.text(`Periode : ${period}`, 14, 27)
+    doc.text(
+      `Total : ${items.length} declaration(s) - ${valid} validee(s) - ${pending} en attente - ${refused} refusee(s)`,
+      14,
+      32
     )
-    const out = []
-    let month = null
-    let day = null
-    for (const d of sorted) {
-      const pd = primeDay(d)
-      const mKey = pd.slice(0, 7)
-      if (mKey !== month) {
-        month = mKey
-        out.push({ type: 'month', key: `m-${mKey}`, label: formatMonth(mKey) })
-        day = null
-      }
-      if (pd !== day) {
-        day = pd
-        out.push({ type: 'day', key: `d-${pd}`, label: formatDay(pd) })
-      }
-      out.push({ type: 'row', key: d.id, data: d })
-    }
-    return out
+    autoTable(doc, {
+      startY: 37,
+      head: [['Date', 'Avion', 'Element', 'Description', 'Categorie', 'Statut']],
+      body: items.map((d) => [
+        primeDay(d)
+          ? new Date(`${primeDay(d)}T12:00:00`).toLocaleDateString('fr-FR')
+          : '-',
+        d.avion || '',
+        d.element || '',
+        d.description || '',
+        d.statut === 'validee' && d.categorie ? CATEGORIES[d.categorie] || d.categorie : '-',
+        (STATUT_STYLES[d.statut] || STATUT_STYLES.soumise).label,
+      ]),
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      headStyles: { fillColor: [15, 23, 42] },
+      columnStyles: { 3: { cellWidth: 60 } },
+    })
+    const date = new Date().toISOString().slice(0, 10)
+    const name =
+      keys.length === 1 ? `aeroprimes-${keys[0]}` : `aeroprimes-${keys[0]}_${keys[keys.length - 1]}`
+    doc.save(`${name}-${date}.pdf`)
+  }
+
+  const yearsList = useMemo(() => {
+    const ys = new Set((declarations || []).map((d) => primeDay(d).slice(0, 4)).filter(Boolean))
+    ys.add(String(new Date().getFullYear()))
+    return [...ys].sort((a, b) => b.localeCompare(a))
+  }, [declarations])
+
+  // Regroupement par mois pour l'affichage (avec séparateurs de jours)
+  const byMonth = useMemo(() => {
+    const map = {}
+    ;(declarations || []).forEach((d) => {
+      const key = primeDay(d).slice(0, 7)
+      if (!map[key]) map[key] = []
+      map[key].push(d)
+    })
+    Object.values(map).forEach((list) =>
+      list.sort((a, b) => primeDay(b).localeCompare(primeDay(a)))
+    )
+    return map
   }, [declarations])
 
   return (
@@ -295,10 +382,76 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Export PDF */}
+        {declarations && declarations.length > 0 && (
+          <div className="bg-white rounded-xl shadow p-5">
+            <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
+              <FileDown className="h-5 w-5 text-sky-500" /> Exporter en PDF
+            </h2>
+            <p className="text-xs text-slate-500 mb-3">
+              Cochez les mois à exporter, ou exportez une année complète.
+            </p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {monthList.map((m) => {
+                const active = exportSel.includes(m.key)
+                return (
+                  <button
+                    key={m.key}
+                    onClick={() => toggleExportMonth(m.key)}
+                    className={`px-2.5 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+                      active
+                        ? 'bg-sky-600 border-sky-600 text-white'
+                        : 'bg-white border-slate-300 text-slate-600 hover:border-sky-400'
+                    }`}
+                  >
+                    {m.label} ({m.count})
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => exportPdf(exportSel)}
+                disabled={exportSel.length === 0}
+                className="flex items-center gap-2 bg-sky-600 text-white px-4 py-2 rounded-md hover:bg-sky-700 disabled:opacity-50 text-sm font-semibold"
+              >
+                <FileDown className="h-4 w-4" /> Exporter la sélection ({exportSel.length})
+              </button>
+              <select
+                value={exportYear}
+                onChange={(e) => setExportYear(e.target.value)}
+                className="border border-slate-300 rounded-md px-2 py-2 text-sm bg-white"
+              >
+                {yearsList.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() =>
+                  exportPdf(
+                    monthList.filter((m) => m.key.startsWith(exportYear)).map((m) => m.key),
+                    `Annee ${exportYear}`
+                  )
+                }
+                className="flex items-center gap-2 border border-slate-300 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-50 text-sm font-semibold"
+              >
+                Exporter l'année {exportYear}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Historique */}
         <div className="bg-white rounded-xl shadow p-5">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <History className="h-5 w-5 text-sky-500" /> Historique
+            {declarations && (
+              <span className="text-sm font-normal text-slate-400">
+                ({declarations.length} prime{declarations.length > 1 ? 's' : ''})
+              </span>
+            )}
           </h2>
           {declarations === null && <p className="text-sm text-slate-400">Chargement…</p>}
           {declarations && declarations.length === 0 && (
@@ -307,70 +460,125 @@ export default function Dashboard() {
             </p>
           )}
           {declarations && declarations.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[680px]">
-                <thead>
-                  <tr className="text-left bg-slate-50">
-                    <th className="px-3 py-2 font-semibold text-slate-700">Avion</th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">Élément</th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">Description</th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">Catégorie</th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">Statut</th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">Motif / décision</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {historyGroups.map((g) => {
-                    if (g.type === 'month')
-                      return (
-                        <tr key={g.key} className="bg-slate-100">
-                          <td
-                            colSpan={6}
-                            className="px-3 py-1.5 font-bold text-slate-700 text-[13px] uppercase tracking-wide"
-                          >
-                            {g.label}
-                          </td>
-                        </tr>
-                      )
-                    if (g.type === 'day')
-                      return (
-                        <tr key={g.key} className="bg-slate-50">
-                          <td colSpan={6} className="px-3 py-1 font-semibold text-slate-500 text-xs">
-                            {g.label}
-                          </td>
-                        </tr>
-                      )
-                    const d = g.data
-                    const st = STATUT_STYLES[d.statut] || STATUT_STYLES.soumise
-                    return (
-                      <tr key={g.key} className="border-b hover:bg-slate-50 align-top">
-                        <td className="px-3 py-2 font-mono font-bold text-sky-700">{d.avion || '—'}</td>
-                        <td className="px-3 py-2">{d.element || '—'}</td>
-                        <td className="px-3 py-2 max-w-[240px]">
-                          <span className="truncate block" title={d.description}>{d.description}</span>
-                        </td>
-                        <td className="px-3 py-2">
-                          {d.statut === 'validee' && d.categorie ? (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                              {CATEGORIES[d.categorie] || d.categorie}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${st.cls}`}>
-                            {st.icon} {st.label}
+            <div className="space-y-3">
+              {monthList.map((m) => {
+                const items = byMonth[m.key] || []
+                const open = (expandedMonths || []).includes(m.key)
+                let lastDay = null
+                return (
+                  <div key={m.key} className="border border-slate-200 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => toggleMonth(m.key)}
+                      className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-slate-50 hover:bg-slate-100 text-left"
+                    >
+                      <span className="flex items-center gap-2 font-semibold text-slate-800 text-sm">
+                        {open ? (
+                          <ChevronDown className="h-4 w-4 text-slate-500" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-slate-500" />
+                        )}
+                        {m.label}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="text-xs font-bold bg-sky-100 text-sky-800 rounded-full px-2 py-0.5">
+                          {m.count} prime{m.count > 1 ? 's' : ''}
+                        </span>
+                        {m.valid > 0 && (
+                          <span className="text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full px-2 py-0.5">
+                            {m.valid} validée{m.valid > 1 ? 's' : ''}
                           </span>
-                        </td>
-                        <td className="px-3 py-2 text-xs text-slate-500">
-                          {d.statut === 'refusee' && d.motif_refus ? d.motif_refus : '—'}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                        )}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            exportPdf([m.key])
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.stopPropagation()
+                              exportPdf([m.key])
+                            }
+                          }}
+                          className="text-slate-400 hover:text-sky-600 p-1"
+                          title={`Exporter ${m.label} en PDF`}
+                        >
+                          <FileDown className="h-4 w-4" />
+                        </span>
+                      </span>
+                    </button>
+                    {open && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm min-w-[680px]">
+                          <thead>
+                            <tr className="text-left bg-slate-50">
+                              <th className="px-3 py-2 font-semibold text-slate-700">Avion</th>
+                              <th className="px-3 py-2 font-semibold text-slate-700">Élément</th>
+                              <th className="px-3 py-2 font-semibold text-slate-700">Description</th>
+                              <th className="px-3 py-2 font-semibold text-slate-700">Catégorie</th>
+                              <th className="px-3 py-2 font-semibold text-slate-700">Statut</th>
+                              <th className="px-3 py-2 font-semibold text-slate-700">Motif / décision</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((d) => {
+                              const pd = primeDay(d)
+                              const newDay = pd !== lastDay
+                              lastDay = pd
+                              const st = STATUT_STYLES[d.statut] || STATUT_STYLES.soumise
+                              return (
+                                <Fragment key={d.id}>
+                                  {newDay && (
+                                    <tr className="bg-slate-50">
+                                      <td
+                                        colSpan={6}
+                                        className="px-3 py-1 font-semibold text-slate-500 text-xs"
+                                      >
+                                        {formatDay(pd)}
+                                      </td>
+                                    </tr>
+                                  )}
+                                  <tr className="border-b hover:bg-slate-50 align-top">
+                                    <td className="px-3 py-2 font-mono font-bold text-sky-700">
+                                      {d.avion || '—'}
+                                    </td>
+                                    <td className="px-3 py-2">{d.element || '—'}</td>
+                                    <td className="px-3 py-2 max-w-[240px]">
+                                      <span className="truncate block" title={d.description}>
+                                        {d.description}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      {d.statut === 'validee' && d.categorie ? (
+                                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                                          {CATEGORIES[d.categorie] || d.categorie}
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-400">—</span>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <span
+                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${st.cls}`}
+                                      >
+                                        {st.icon} {st.label}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 text-xs text-slate-500">
+                                      {d.statut === 'refusee' && d.motif_refus ? d.motif_refus : '—'}
+                                    </td>
+                                  </tr>
+                                </Fragment>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
